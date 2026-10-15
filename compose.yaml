@@ -1,0 +1,65 @@
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm-server
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+      - VLLM_LOGGING_LEVEL=${VLLM_LOGGING_LEVEL}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    command:
+      - "--model"
+      - "${MODEL_NAME}"
+      - "--gpu-memory-utilization"
+      - "${GPU_MEM_UTIL:-0.85}"
+      - "--max-model-len"
+      - "${MAX_MODEL_LEN:-8192}"
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 120s
+
+  benchmark:
+    image: vllm/vllm-openai:latest
+    profiles:
+      - benchmark
+    depends_on:
+      vllm:
+        condition: service_healthy
+    entrypoint: ["vllm"]
+    command:
+      - "bench"
+      - "serve"
+      - "--backend"
+      - "openai-chat"
+      - "--base-url"
+      - "http://vllm:8000"
+      - "--endpoint"
+      - "/v1/chat/completions"
+      - "--model"
+      - "${MODEL_NAME}"
+      - "--dataset-name"
+      - "random"
+      - "--input-len"
+      - "${BENCH_INPUT_LEN:-512}"
+      - "--output-len"
+      - "${BENCH_OUTPUT_LEN:-128}"
+      - "--num-prompts"
+      - "${BENCH_NUM_PROMPTS:-100}"
+      - "--request-rate"
+      - "inf"
+      - "--max-concurrency"
+      - "${BENCH_CONCURRENCY:-8}"

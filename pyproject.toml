@@ -1,0 +1,19 @@
+[project]
+name = "inference-with-vllm"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Akarapon Ball", email = "ball.pet18@outlook.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "python-dotenv>=1.2.3",
+]
+
+[project.scripts]
+inference-with-vllm = "inference_with_vllm:main"
+
+[build-system]
+requires = ["uv_build>=0.12.18,<0.13.0"]
+build-backend = "uv_build"
